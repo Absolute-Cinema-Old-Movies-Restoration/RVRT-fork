@@ -71,7 +71,7 @@ def main():
         gt = batch['H'] if 'H' in batch else None
 
         # inference
-        with torch.no_grad():
+        with torch.inference_mode():
             output = test_video(lq, model, args)
 
         if 'vimeo' in args.folder_lq.lower():
@@ -173,7 +173,7 @@ def prepare_model_dataset(args):
         args.nonblind_denoising = False
 
     elif args.task in ['005_RVRT_videodeblurring_GoPro_16frames']:
-        model = net(upscale=1, clip_size=2, img_size=[2, 64, 64], window_size=[2, 8, 8], num_blocks=[1, 2, 1],
+        model = net(upscale=1, clip_size=2, img_size=[3, 480, 360], window_size=[2, 8, 8], num_blocks=[1, 2, 1],
                     depths=[2, 2, 2], embed_dims=[192, 192, 192], num_heads=[6, 6, 6],
                     inputconv_groups=[1, 3, 3, 3, 3, 3], deformable_groups=12, attention_heads=12,
                     attention_window=[3, 3], cpu_cache_length=100)
@@ -183,7 +183,7 @@ def prepare_model_dataset(args):
         args.nonblind_denoising = False
 
     elif args.task == '006_RVRT_videodenoising_DAVIS_16frames':
-        model = net(upscale=1, clip_size=2, img_size=[2, 64, 64], window_size=[2, 8, 8], num_blocks=[1, 2, 1],
+        model = net(upscale=1, clip_size=2, img_size=[2, 480, 360], window_size=[2, 8, 8], num_blocks=[1, 2, 1],
                     depths=[2, 2, 2], embed_dims=[192, 192, 192], num_heads=[6, 6, 6],
                     inputconv_groups=[1, 3, 4, 6, 8, 4], deformable_groups=12, attention_heads=12,
                     attention_window=[3, 3], nonblind_denoising=True, cpu_cache_length=100)
