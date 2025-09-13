@@ -28,9 +28,7 @@ class VideoFromVideoFileTestDataset(data.Dataset):
         opt (dict): Config for train dataset. It contains the following keys:
             dataroot_lq (str): Data root path for lq.
             name (str): Dataset name.
-            num_frame (int): Window size for input frames.
             max_mem (int): Maximum memory usage (in MB) per video.
-            padding (str): Padding mode.
     """
 
     def __init__(self, opt):
@@ -46,7 +44,9 @@ class VideoFromVideoFileTestDataset(data.Dataset):
     def _expected_mem_less_than(self, file: Path) -> bool:
         video_reader = decord.VideoReader(str(file), ctx=decord.cpu(0))
         num_frames = len(video_reader)
-        return video_reader[0].element_size() * num_frames < self.max_mem * 1024 * 1024
+        frame = video_reader[0]
+        mem_bytes = frame.numel() * frame.element_size() * num_frames
+        return mem_bytes < self.max_mem * 1024 * 1024
 
     def _find_files(self, dataroot: Path) -> list[Path]:
         ends_with_digit_re = re.compile(r"^.*\d+\..+$")
@@ -63,32 +63,18 @@ class VideoFromVideoFileTestDataset(data.Dataset):
         video = torch.empty((len(video_reader), *video_reader[0].shape))
         for i, frame in enumerate(video_reader):
             video[i] = frame
-        return video.permute(0, 3, 1, 2).divide_(255.0)
+        return video.permute(0, 3, 1, 2).divide_(255.0), video_reader.get_avg_fps()
 
     def __getitem__(self, index):
         file = self.files[index]
-        imgs_lq = self._read_video(file)
+        imgs_lq, fps = self._read_video(file)
         return {
             "L": imgs_lq,
             "folder": file.parent.name,
-            "lq_path": file,
+            "lq_path": str(file),
+            "filename": file.name,
+            "fps": fps,
         }
 
     def __len__(self):
         return len(self.files)
-
-
-if __name__ == "__main__":
-    d = VideoFromVideoFileTestDataset(
-        {
-            "dataroot_lq": "/home/dawid/absolute-cinema/data/video/scenes",
-            "max_mem": 2048,
-        }
-    )
-    for i in range(len(d)):
-        try:
-            d_ = d[i]
-            print(d_["L"].shape)
-            del d_
-        except Exception as e:
-            print("Error:", e)
